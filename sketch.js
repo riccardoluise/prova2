@@ -15,7 +15,7 @@ function setup() {
 function draw() {
   if (clicked) {
     background('#0088FF'); // Colore di sfondo quando cliccato
-    button.style('background-color', '#FF8800'); // Colore del bottone quando cliccato
+    button.style('background-color', '#FF88ff'); // Colore del bottone quando cliccato
   } else {
     background('#FF8800'); // Colore di sfondo iniziale
     button.style('background-color', '#0088FF'); // Colore del bottone iniziale
