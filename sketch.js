@@ -44,15 +44,34 @@ function setup() {
 function draw() {
   background(220);
 
-  // Draw the progress bar
-  if ((state === 2 || state === 3) && soundFile.duration() > 0) {
-    progressBarWidth = (soundFile.currentTime() / soundFile.duration()) * width;
+  // Draw the waveform
+  if ((state === 2 || state === 3) && soundFile.isLoaded()) {
+    drawWaveform();
   } else {
-    progressBarWidth = 0;
-  }
+    // Draw the progress bar
+    if ((state === 2 || state === 3) && soundFile.duration() > 0) {
+      progressBarWidth = (soundFile.currentTime() / soundFile.duration()) * width;
+    } else {
+      progressBarWidth = 0;
+    }
 
-  fill(0, 255, 0);
-  rect(0, height - 20, progressBarWidth, 20);
+    fill(0, 255, 0);
+    rect(0, height - 20, progressBarWidth, 20);
+  }
+}
+
+function drawWaveform() {
+  let waveform = soundFile.getPeaks(); // Get the audio waveform peaks
+  noFill();
+  beginShape();
+  stroke(0, 255, 0); // Green color for the waveform
+  strokeWeight(1);
+  for (let i = 0; i < waveform.length; i++) {
+    let x = map(i, 0, waveform.length, 0, width);
+    let y = map(waveform[i], -1, 1, height, 0);
+    vertex(x, y);
+  }
+  endShape();
 }
 
 function startRecording() {
