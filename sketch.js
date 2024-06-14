@@ -5,7 +5,7 @@ let progressBarWidth = 0;
 
 function setup() {
   createCanvas(500, 400);
-  background(220);
+  background(0);
 
   // Create an audio input
   mic = new p5.AudioIn();
@@ -42,11 +42,12 @@ function setup() {
 }
 
 function draw() {
-  background(220);
+  background(0);
 
   // Draw the waveform
   if ((state === 2 || state === 3) && soundFile.isLoaded()) {
     drawWaveform();
+    drawPlaybackCursor();
   } else {
     // Draw the progress bar
     if ((state === 2 || state === 3) && soundFile.duration() > 0) {
@@ -55,7 +56,7 @@ function draw() {
       progressBarWidth = 0;
     }
 
-    fill(0, 255, 0);
+    fill(255);
     rect(0, height - 20, progressBarWidth, 20);
   }
 }
@@ -64,7 +65,7 @@ function drawWaveform() {
   let waveform = soundFile.getPeaks(); // Get the audio waveform peaks
   noFill();
   beginShape();
-  stroke(0, 255, 0); // Green color for the waveform
+  stroke(255); // White color for the waveform
   strokeWeight(1);
   for (let i = 0; i < waveform.length; i++) {
     let x = map(i, 0, waveform.length, 0, width);
@@ -72,6 +73,16 @@ function drawWaveform() {
     vertex(x, y);
   }
   endShape();
+}
+
+function drawPlaybackCursor() {
+  let currentTime = soundFile.currentTime();
+  let duration = soundFile.duration();
+  let cursorX = map(currentTime, 0, duration, 0, width);
+
+  stroke(255, 0, 0); // Red color for the cursor
+  strokeWeight(2);
+  line(cursorX, 0, cursorX, height);
 }
 
 function startRecording() {
