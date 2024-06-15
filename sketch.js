@@ -23,20 +23,28 @@ function setup() {
   // Create buttons
   recordButton = createButton('Record');
   recordButton.position(10, 10);
+  recordButton.style('background-color', 'white');
+  recordButton.style('color', 'black');
   recordButton.mousePressed(startRecording);
 
   playButton = createButton('Play');
   playButton.position(90, 10);
+  playButton.style('background-color', 'white');
+  playButton.style('color', 'black');
   playButton.mousePressed(startPlayback);
   playButton.attribute('disabled', '');
 
   pauseButton = createButton('Pause');
   pauseButton.position(150, 10);
+  pauseButton.style('background-color', 'white');
+  pauseButton.style('color', 'black');
   pauseButton.mousePressed(pausePlayback);
   pauseButton.attribute('disabled', '');
 
   stopButton = createButton('Stop');
   stopButton.position(220, 10);
+  stopButton.style('background-color', 'white');
+  stopButton.style('color', 'black');
   stopButton.mousePressed(stopPlayback);
   stopButton.attribute('disabled', '');
 }
@@ -45,9 +53,11 @@ function draw() {
   background(0);
 
   // Draw the waveform
-  if ((state === 2 || state === 3) && soundFile.isLoaded()) {
+  if ((state === 1 || state === 2 || state === 3) && soundFile.isLoaded()) {
     drawWaveform();
-    drawPlaybackCursor();
+    if (state === 2 || state === 3) {
+      drawPlaybackCursor();
+    }
   } else {
     // Draw the progress bar
     if ((state === 2 || state === 3) && soundFile.duration() > 0) {
@@ -58,6 +68,10 @@ function draw() {
 
     fill(255);
     rect(0, height - 20, progressBarWidth, 20);
+  }
+
+  if (state === 1) {
+    drawWaveformDuringRecording();
   }
 }
 
@@ -75,6 +89,13 @@ function drawWaveform() {
   endShape();
 }
 
+function drawWaveformDuringRecording() {
+  let waveform = mic.getLevel() * height; // Get the audio waveform level
+  stroke(255); // White color for the waveform
+  strokeWeight(1);
+  line(frameCount % width, height / 2, frameCount % width, height / 2 - waveform);
+}
+
 function drawPlaybackCursor() {
   let currentTime = soundFile.currentTime();
   let duration = soundFile.duration();
@@ -89,9 +110,9 @@ function startRecording() {
   console.log("Starting recording...");
   soundFile = new p5.SoundFile(); // Reset soundFile to ensure it's empty
   recorder.record(soundFile);
-  recordButton.attribute('disabled', '');
-  playButton.attribute('disabled', '');
-  pauseButton.attribute('disabled', '');
+  recordButton.attribute('disabled', 'true');
+  playButton.attribute('disabled', 'true');
+  pauseButton.attribute('disabled', 'true');
   stopButton.removeAttribute('disabled');
   state = 1;
   console.log("Recording started");
@@ -108,8 +129,8 @@ function stopPlayback() {
   }
   recordButton.removeAttribute('disabled');
   playButton.removeAttribute('disabled');
-  pauseButton.attribute('disabled', '');
-  stopButton.attribute('disabled', '');
+  pauseButton.attribute('disabled', 'true');
+  stopButton.attribute('disabled', 'true');
   console.log("Playback or recording stopped");
 }
 
@@ -117,8 +138,8 @@ function startPlayback() {
   console.log("Starting playback...");
   if (soundFile.isLoaded() && soundFile.buffer && soundFile.buffer.length > 0) {
     soundFile.loop();
-    recordButton.attribute('disabled', '');
-    playButton.attribute('disabled', '');
+    recordButton.attribute('disabled', 'true');
+    playButton.attribute('disabled', 'true');
     pauseButton.removeAttribute('disabled');
     stopButton.removeAttribute('disabled');
     state = 2;
