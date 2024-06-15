@@ -1,6 +1,6 @@
 let mic, recorder, soundFile;
 let state = 0; // 0: stop, 1: recording, 2: playback, 3: paused
-let recordButton, playButton, pauseButton, stopButton;
+let recordButton, playButton, pauseButton, stopButton, downloadButton;
 let progressBarWidth = 0;
 const versionNumber = "Version number 5.0"; // Version number
 
@@ -49,6 +49,13 @@ function setup() {
   stopButton.style('color', 'white');
   stopButton.mousePressed(stopPlayback);
   stopButton.attribute('disabled', '');
+
+  downloadButton = createButton('Download');
+  downloadButton.position(width - 110, height - 40);
+  downloadButton.style('background-color', 'orange');
+  downloadButton.style('color', 'white');
+  downloadButton.mousePressed(downloadAudio);
+  downloadButton.attribute('disabled', '');
 }
 
 function draw() {
@@ -133,6 +140,8 @@ function startRecording() {
   pauseButton.style('background-color', 'darkgray');
   stopButton.removeAttribute('disabled');
   stopButton.style('background-color', 'red');
+  downloadButton.attribute('disabled', 'true');
+  downloadButton.style('background-color', 'darkgray');
   state = 1;
   console.log("Recording started");
 }
@@ -160,6 +169,10 @@ function stopPlayback() {
   pauseButton.style('background-color', 'darkgray');
   stopButton.attribute('disabled', 'true');
   stopButton.style('background-color', 'darkgray');
+  if (state === 0 && soundFile.buffer && soundFile.buffer.length > 0) {
+    downloadButton.removeAttribute('disabled');
+    downloadButton.style('background-color', 'orange');
+  }
   console.log("Playback or recording stopped");
 }
 
@@ -176,6 +189,8 @@ function startPlayback() {
     pauseButton.style('background-color', 'blue');
     stopButton.removeAttribute('disabled');
     stopButton.style('background-color', 'red');
+    downloadButton.attribute('disabled', 'true');
+    downloadButton.style('background-color', 'darkgray');
     state = 2;
     console.log("Playback started");
   } else {
@@ -193,6 +208,16 @@ function pausePlayback() {
     soundFile.play();
     state = 2;
     console.log("Playback resumed");
+  }
+}
+
+function downloadAudio() {
+  console.log("Downloading audio...");
+  if (soundFile.buffer && soundFile.buffer.length > 0) {
+    save(soundFile, 'myRecording.wav');
+    console.log("Audio downloaded");
+  } else {
+    console.log("No audio to download");
   }
 }
 
