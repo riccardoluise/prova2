@@ -7,20 +7,21 @@ function setup() {
   createCanvas(500, 400);
   background(0);
 
-  // Create an audio input
   mic = new p5.AudioIn();
-  
-  // Start the audio input
-  mic.start();
+  mic.start(() => {
+    console.log("Microphone permission granted.");
+  }, () => {
+    console.log("Microphone permission denied.");
+  });
+  console.log("Mic created:", mic);
 
-  // Create a sound recorder
   recorder = new p5.SoundRecorder();
   recorder.setInput(mic);
+  console.log("Recorder created:", recorder);
 
-  // Create an empty sound file
   soundFile = new p5.SoundFile();
+  console.log("SoundFile created:", soundFile);
 
-  // Create buttons
   recordButton = createButton('Record');
   recordButton.position(10, 10);
   recordButton.style('background-color', 'white');
@@ -50,16 +51,20 @@ function setup() {
 }
 
 function draw() {
-  background(0);
+  if (state !== 1) {
+    background(0);
+  }
 
-  // Draw the waveform
-  if ((state === 1 || state === 2 || state === 3) && soundFile.isLoaded()) {
+  fill(255);
+  textSize(16);
+  text("Version number 3.0", 10, height - 10); // Draw version number
+
+  if ((state === 2 || state === 3) && soundFile.isLoaded()) {
     drawWaveform();
     if (state === 2 || state === 3) {
       drawPlaybackCursor();
     }
   } else {
-    // Draw the progress bar
     if ((state === 2 || state === 3) && soundFile.duration() > 0) {
       progressBarWidth = (soundFile.currentTime() / soundFile.duration()) * width;
     } else {
@@ -71,15 +76,15 @@ function draw() {
   }
 
   if (state === 1) {
-    drawWaveformDuringRecording();
+    drawMicLevelBar();
   }
 }
 
 function drawWaveform() {
-  let waveform = soundFile.getPeaks(); // Get the audio waveform peaks
+  let waveform = soundFile.getPeaks();
   noFill();
   beginShape();
-  stroke(255); // White color for the waveform
+  stroke(255);
   strokeWeight(1);
   for (let i = 0; i < waveform.length; i++) {
     let x = map(i, 0, waveform.length, 0, width);
@@ -89,11 +94,13 @@ function drawWaveform() {
   endShape();
 }
 
-function drawWaveformDuringRecording() {
-  let waveform = mic.getLevel() * height; // Get the audio waveform level
-  stroke(255); // White color for the waveform
-  strokeWeight(1);
-  line(frameCount % width, height / 2, frameCount % width, height / 2 - waveform);
+function drawMicLevelBar() {
+  let micLevel = mic.getLevel();
+  let amplifiedLevel = pow(micLevel, 2) * height * 2;
+  let barHeight = map(amplifiedLevel, 0, 1, 0, height * 0.75);
+  fill(0, 255, 0);
+  noStroke();
+  rect((frameCount % width), height / 2, 1, -barHeight);
 }
 
 function drawPlaybackCursor() {
@@ -101,14 +108,16 @@ function drawPlaybackCursor() {
   let duration = soundFile.duration();
   let cursorX = map(currentTime, 0, duration, 0, width);
 
-  stroke(255, 0, 0); // Red color for the cursor
+  stroke(255, 0, 0);
   strokeWeight(2);
   line(cursorX, 0, cursorX, height);
 }
 
 function startRecording() {
+  initializeAudioContext();
   console.log("Starting recording...");
-  soundFile = new p5.SoundFile(); // Reset soundFile to ensure it's empty
+  soundFile = new p5.SoundFile();
+  console.log("New SoundFile created for recording:", soundFile);
   recorder.record(soundFile);
   recordButton.attribute('disabled', 'true');
   playButton.attribute('disabled', 'true');
@@ -122,7 +131,13 @@ function stopPlayback() {
   console.log("Stopping playback or recording...");
   if (state === 1) {
     recorder.stop();
-    state = 2;
+    if (soundFile.buffer && soundFile.buffer.length > 0) {
+      console.log("Recording stopped with buffer length:", soundFile.buffer.length);
+      state = 2;
+    } else {
+      console.log("Recording stopped but buffer is empty or not loaded.");
+      state = 0;
+    }
   } else if (state === 2 || state === 3) {
     soundFile.stop();
     state = 0;
@@ -137,6 +152,7 @@ function stopPlayback() {
 function startPlayback() {
   console.log("Starting playback...");
   if (soundFile.isLoaded() && soundFile.buffer && soundFile.buffer.length > 0) {
+    console.log("SoundFile details:", soundFile);
     soundFile.loop();
     recordButton.attribute('disabled', 'true');
     playButton.attribute('disabled', 'true');
@@ -145,7 +161,7 @@ function startPlayback() {
     state = 2;
     console.log("Playback started");
   } else {
-    console.log("Sound file not loaded yet");
+    console.log("Sound file not loaded yet or is empty");
   }
 }
 
@@ -163,9 +179,17 @@ function pausePlayback() {
 }
 
 function preload() {
-  // Ensure soundFile buffer is ready before starting playback
   soundFile = new p5.SoundFile();
   console.log("Preload: Created empty p5.SoundFile");
+}
+
+function initializeAudioContext() {
+  let context = getAudioContext();
+  if (context.state !== 'running') {
+    context.resume().then(() => {
+      console.log('Audio context resumed successfully.');
+    });
+  }
 }
 
 function initializeAudioContext() {
