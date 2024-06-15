@@ -1,74 +1,86 @@
 let mic, recorder, soundFile;
-let state = 0;
+let state = 0; // 0: stop, 1: recording, 2: playback, 3: paused
 let recordButton, playButton, pauseButton, stopButton;
 let progressBarWidth = 0;
+const versionNumber = "Version number 5.0"; // Version number
 
 function setup() {
-  setupCanvas();
-  setupAudio();
-  setupButtons();
+  createCanvas(500, 400);
+  background(0);
+
+  mic = new p5.AudioIn();
+  mic.start(() => {
+    console.log("Microphone permission granted.");
+  }, () => {
+    console.log("Microphone permission denied.");
+  });
+  console.log("Mic created:", mic);
+
+  recorder = new p5.SoundRecorder();
+  recorder.setInput(mic);
+  console.log("Recorder created:", recorder);
+
+  soundFile = new p5.SoundFile();
+  console.log("SoundFile created:", soundFile);
+
+  recordButton = createButton('<i class="fas fa-circle"></i> Record');
+  recordButton.position(10, 10);
+  recordButton.style('background-color', 'red');
+  recordButton.style('color', 'white');
+  recordButton.mousePressed(startRecording);
+
+  playButton = createButton('<i class="fas fa-play"></i> Play');
+  playButton.position(90, 10);
+  playButton.style('background-color', 'green');
+  playButton.style('color', 'white');
+  playButton.mousePressed(startPlayback);
+  playButton.attribute('disabled', '');
+
+  pauseButton = createButton('<i class="fas fa-pause"></i> Pause');
+  pauseButton.position(150, 10);
+  pauseButton.style('background-color', 'blue');
+  pauseButton.style('color', 'white');
+  pauseButton.mousePressed(pausePlayback);
+  pauseButton.attribute('disabled', '');
+
+  stopButton = createButton('<i class="fas fa-stop"></i> Stop');
+  stopButton.position(220, 10);
+  stopButton.style('background-color', 'gray');
+  stopButton.style('color', 'white');
+  stopButton.mousePressed(stopPlayback);
+  stopButton.attribute('disabled', '');
 }
 
 function draw() {
-  background(0);
+  if (state !== 1) {
+    background(0);
+  }
 
-  displayText();
-  if ((state === 2 || state === 3) && soundFile.isLoaded()) {
-    drawWaveform();
-    drawPlaybackCursor();
+  fill(255);
+  textSize(16);
+  text(versionNumber, 10, height - 10); // Draw version number
+
+  if (state === 2 || state === 3 || state === 0) {
+    if (soundFile.isLoaded()) {
+      drawWaveform();
+    }
+    if (state === 2 || state === 3) {
+      drawPlaybackCursor();
+    }
   } else {
-    drawProgressBar();
+    if ((state === 2 || state === 3) && soundFile.duration() > 0) {
+      progressBarWidth = (soundFile.currentTime() / soundFile.duration()) * width;
+    } else {
+      progressBarWidth = 0;
+    }
+
+    fill(255);
+    rect(0, height - 20, progressBarWidth, 20);
   }
 
   if (state === 1) {
     drawMicLevelBar();
   }
-}
-
-function setupCanvas() {
-  createCanvas(500, 400);
-}
-
-function setupAudio() {
-  mic = new p5.AudioIn();
-  mic.start();
-
-  recorder = new p5.SoundRecorder();
-  recorder.setInput(mic);
-
-  soundFile = new p5.SoundFile();
-}
-
-function setupButtons() {
-  recordButton = createButton('');
-  configureButton(recordButton, 10, 10, 'record.png', startRecording);
-
-  playButton = createButton('');
-  configureButton(playButton, 70, 10, 'play.png', startPlayback);
-  disableButton(playButton);
-
-  pauseButton = createButton('');
-  configureButton(pauseButton, 130, 10, 'pause.png', pausePlayback);
-  disableButton(pauseButton);
-
-  stopButton = createButton('');
-  configureButton(stopButton, 190, 10, 'stop.png', stopPlayback);
-  disableButton(stopButton);
-}
-
-function configureButton(button, x, y, icon, action) {
-  button.position(x, y);
-  button.size(50, 50);
-  button.style('background-image', `url("${icon}")`);
-  button.style('background-size', 'contain');
-  button.mousePressed(action);
-  button.style('opacity', '0.5'); // Inizia disabilitato
-}
-
-function displayText() {
-  fill(255);
-  textSize(16);
-  text("Version number 3.0", 10, height - 10);
 }
 
 function drawWaveform() {
@@ -104,82 +116,96 @@ function drawPlaybackCursor() {
   stroke(255, 0, 0);
   strokeWeight(2);
   line(cursorX, 0, cursorX, height);
-}
-
-function drawProgressBar() {
-  if ((state === 2 || state === 3) && soundFile.duration() > 0) {
-    progressBarWidth = (soundFile.currentTime() / soundFile.duration()) * width;
-  } else {
-    progressBarWidth = 0;
-  }
-
-  fill(255);
-  rect(0, height - 20, progressBarWidth, 20);
+  noStroke(); // Reset to no stroke after drawing the cursor
 }
 
 function startRecording() {
   initializeAudioContext();
+  console.log("Starting recording...");
   soundFile = new p5.SoundFile();
+  console.log("New SoundFile created for recording:", soundFile);
   recorder.record(soundFile);
-  disableButton(recordButton);
-  disableButton(playButton);
-  disableButton(pauseButton);
-  enableButton(stopButton);
+  recordButton.attribute('disabled', 'true');
+  recordButton.style('background-color', 'darkgray');
+  playButton.attribute('disabled', 'true');
+  playButton.style('background-color', 'darkgray');
+  pauseButton.attribute('disabled', 'true');
+  pauseButton.style('background-color', 'darkgray');
+  stopButton.removeAttribute('disabled');
+  stopButton.style('background-color', 'red');
   state = 1;
+  console.log("Recording started");
 }
 
 function stopPlayback() {
+  console.log("Stopping playback or recording...");
   if (state === 1) {
     recorder.stop();
-    state = soundFile.buffer && soundFile.buffer.length > 0 ? 2 : 0;
+    if (soundFile.buffer && soundFile.buffer.length > 0) {
+      console.log("Recording stopped with buffer length:", soundFile.buffer.length);
+      state = 0; // Changed state to 0 to show waveform after stopping recording
+    } else {
+      console.log("Recording stopped but buffer is empty or not loaded.");
+      state = 0;
+    }
   } else if (state === 2 || state === 3) {
     soundFile.stop();
     state = 0;
   }
-  enableButton(recordButton);
-  enableButton(playButton);
-  disableButton(pauseButton);
-  disableButton(stopButton);
+  recordButton.removeAttribute('disabled');
+  recordButton.style('background-color', 'red');
+  playButton.removeAttribute('disabled');
+  playButton.style('background-color', 'green');
+  pauseButton.attribute('disabled', 'true');
+  pauseButton.style('background-color', 'darkgray');
+  stopButton.attribute('disabled', 'true');
+  stopButton.style('background-color', 'darkgray');
+  console.log("Playback or recording stopped");
 }
 
 function startPlayback() {
+  console.log("Starting playback...");
   if (soundFile.isLoaded() && soundFile.buffer && soundFile.buffer.length > 0) {
+    console.log("SoundFile details:", soundFile);
     soundFile.loop();
-    disableButton(recordButton);
-    disableButton(playButton);
-    enableButton(pauseButton);
-    enableButton(stopButton);
+    recordButton.attribute('disabled', 'true');
+    recordButton.style('background-color', 'darkgray');
+    playButton.attribute('disabled', 'true');
+    playButton.style('background-color', 'darkgray');
+    pauseButton.removeAttribute('disabled');
+    pauseButton.style('background-color', 'blue');
+    stopButton.removeAttribute('disabled');
+    stopButton.style('background-color', 'red');
     state = 2;
+    console.log("Playback started");
+  } else {
+    console.log("Sound file not loaded yet or is empty");
   }
 }
 
 function pausePlayback() {
+  console.log("Pausing playback...");
   if (soundFile.isPlaying()) {
     soundFile.pause();
     state = 3;
+    console.log("Playback paused");
   } else if (soundFile.isPaused()) {
     soundFile.play();
     state = 2;
+    console.log("Playback resumed");
   }
 }
 
 function preload() {
   soundFile = new p5.SoundFile();
+  console.log("Preload: Created empty p5.SoundFile");
 }
 
 function initializeAudioContext() {
   let context = getAudioContext();
   if (context.state !== 'running') {
-    context.resume();
+    context.resume().then(() => {
+      console.log('Audio context resumed successfully.');
+    });
   }
-}
-
-function disableButton(button) {
-  button.attribute('disabled', 'true');
-  button.style('opacity', '0.5');
-}
-
-function enableButton(button) {
-  button.removeAttribute('disabled');
-  button.style('opacity', '1');
 }
